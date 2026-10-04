@@ -13,10 +13,14 @@
 
     <nav class="navbar navbar-dark bg-dark p-3">
         <div class="container-fluid">
-            <a href="#" class="navbar-brand d-flex align-items-center">
-                <img src="logohack.webp" alt="логотип-сайта" class="me-2">
+            <a href="index.php" class="navbar-brand d-flex align-items-center">
                 <span class="text-light">History</span>
             </a>
+            <?php if (isset($_COOKIE['User'])): ?>
+                <form action="/logout.php" method="POST" class="d-flex">
+                    <button class="btn btn-outline-danger" type="submit">Logout</button>
+                </form>
+            <?php endif; ?>
         </div>
     </nav>
 
@@ -61,3 +65,52 @@
     <script src="js/script.js"></script>
 </body>
 </html>
+
+<?php
+require_once('db.php');
+
+if (!isset($_COOKIE['User'])) {
+    header("Location: /login.php");
+    exit();
+}
+
+if (isset($_POST['submit'])) {
+    $title = $_POST['postTitle'];
+    $main_text = $_POST['postContent'];
+    $imagePath = "";
+
+    if (!$title || !$main_text) {
+        die("no data post");
+    }
+
+    if (!empty($_FILES["file"]["name"])) {
+        if (((@$_FILES["file"]["type"] == "image/gif") || (@$_FILES["file"]["type"] == "image/jpeg")
+        || (@$_FILES["file"]["type"] == "image/jpg") || (@$_FILES["file"]["type"] == "image/pjpeg")
+        || (@$_FILES["file"]["type"] == "image/x-png") || (@$_FILES["file"]["type"] == "image/png"))
+        && (@$_FILES["file"]["size"] < 102400)) {
+            
+            if (!is_dir('upload')) {
+                mkdir('upload', 0777, true);
+            }
+
+            $fileName = basename($_FILES["file"]["name"]);
+            $uploadFile = "upload/" . $fileName;
+
+            if (move_uploaded_file($_FILES["file"]["tmp_name"], $uploadFile)) {
+                $imagePath = $uploadFile;
+            }
+        }
+    }
+
+    $sql = "INSERT INTO posts (title, main_text, image) VALUES ('$title', '$main_text', '$imagePath')";
+    
+    $result = mysqli_query($link, $sql);
+    
+    if (!$result) {
+        echo "<div class='text-center text-danger mt-3'>Ошибка MySQL: " . mysqli_error($link) . "</div>";
+    } else {
+        echo "<h2 class='text-center text-success mt-3'>Пост успешно добавлен в базу!</h2>";
+        exit();
+    }
+}
+?>
